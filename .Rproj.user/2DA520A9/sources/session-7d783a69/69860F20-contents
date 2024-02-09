@@ -1,0 +1,35 @@
+library(data.table)
+
+# Read data
+personal_data <- fread("data_personal.csv")
+customer_data <- fread("data_customer.csv")
+
+# Merge
+merged_data <- merge(personal_data, customer_data, by="CustomerId", all = TRUE)
+
+# Change columns to factors
+merged_data[, Exited := as.factor(Exited)]
+merged_data[, Gender := as.factor(Gender)]
+
+# Check conversion
+str(merged_data)
+summary(merged_data)
+
+# Prediction
+prediction <- glm(Exited ~ CreditScore + Gender + Age + Tenure + Balance + NumOfProducts + HasCrCard + IsActiveMember + EstimatedSalary,
+                  data = merged_data, family = "binomial")
+
+# Create churn column
+merged_data$Churn_Probability <- predict(prediction, type = "response", merged_data)
+
+# Find highest and lowest
+highest_customer_index <- which.max(merged_data$Churn_Probability)
+lowest_customer_index <- which.min(merged_data$Churn_Probability)
+customer_highest_churn <- merged_data[highest_customer_index, ]
+customer_lowest_churn <- merged_data[lowest_customer_index, ]
+
+# Average churn for men and women
+avg_men <- merged_data[Gender == "Male", mean(Churn_Probability)]
+avg_women <- merged_data[Gender == "Female", mean(Churn_Probability)]
+
+
